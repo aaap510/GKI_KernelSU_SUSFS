@@ -4,6 +4,11 @@ name: Repro 6.1.115 (pinned)
 # source pinned, by calling upstream's prepare.yml unchanged. Defaults are the
 # pins of the Wild release running on the phone (r21). Never publishes.
 
+# Same grants as main.yml; build.yml requests both.
+permissions:
+  contents: write
+  actions: write
+
 on:
   workflow_dispatch:
     inputs:

@@ -1,0 +1,75 @@
+name: Repro 6.1.115 (pinned)
+
+# Fork-only wrapper: builds android14-6.1 sublevel 115 (2024-12) with every
+# source pinned, by calling upstream's prepare.yml unchanged. Defaults are the
+# pins of the Wild release running on the phone (r21). Never publishes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      root_commit:
+        description: "pershoot/KernelSU-Next commit (full SHA)"
+        default: "4c5853188012f63a1a1fedd4a57fda6375fecb38"
+      susfs_commit:
+        description: "simonpunk/susfs4ksu gki-android14-6.1 commit"
+        default: "24743360ea08d98f6ad72b856851abed8de5854f"
+      nomount_commit:
+        description: "NoMount commit"
+        default: "5a610db7649a59eb3e3d710653618d594941f8da"
+      kernel_patches_commit:
+        description: "WildKernels/kernel_patches (BBG) commit"
+        default: "41ae18b35d20e0c6ac04116785a4a1089528ae94"
+      droidspaces_commit:
+        description: "Droidspaces-OSS commit"
+        default: "434d795d80f34852251599cf412841c493aa7177"
+      anykernel3_commit:
+        description: "WildKernels/AnyKernel3 gki-2.0 commit"
+        default: "e1e9dce98430c5c6f231f7094a8c7f4ecaf50948"
+      feature_set:
+        description: "Feature set (r20/r21 used all features except Perf)"
+        default: "SUSFS+NoMount+BBG+NET+DS+NTSync+Ptrace+Unicode+BPF"
+      brand_name:
+        description: "Version-string suffix (Wild for an exact repro)"
+        default: "Wild"
+
+jobs:
+  # Same as main.yml's job: build.yml's metadata step expects this artifact.
+  build-nomount-module:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build NoMount metamodule (nm only, no .ko)
+        id: buildmod
+        uses: ./.github/actions/nomount-metamodule
+        with:
+          commit: ${{ inputs.nomount_commit }}
+      - name: Upload NoMount metamodule
+        uses: actions/upload-artifact@v7
+        with:
+          name: NoMount-Metamodule
+          path: ${{ steps.buildmod.outputs.module_dir }}
+          if-no-files-found: error
+          compression-level: 0
+
+  build:
+    needs: build-nomount-module
+    uses: ./.github/workflows/prepare.yml
+    with:
+      config_file: .github/config/android14-6.1.json
+      os_patch_level: "2024-12"
+      page_size: "4k"
+      root_flavor: next
+      variant: KernelSU-Next
+      ksu_branch: 2b31f7185460e99bc3896a639e9073b1c354ee0d  # as r21; unused by build.yml
+      root_commit: ${{ inputs.root_commit }}
+      susfs_commit: ${{ inputs.susfs_commit }}
+      nomount_commit: ${{ inputs.nomount_commit }}
+      kernel_patches_commit: ${{ inputs.kernel_patches_commit }}
+      droidspaces_commit: ${{ inputs.droidspaces_commit }}
+      anykernel3_commit: ${{ inputs.anykernel3_commit }}
+      feature_set: ${{ inputs.feature_set }}
+      brand_name: ${{ inputs.brand_name }}
+      keep_kmi: false
+      allow_version_mismatch: false
+      use_cache: false
+    secrets: inherit

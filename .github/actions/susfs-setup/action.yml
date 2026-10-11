@@ -54,7 +54,17 @@ runs:
         # no-features core build + Toolkit coexistence fixes) only apply to
         # KernelSU-Next (dev-susfs fork). Other flavors use the simonpunk
         # checkout as-is.
-        if [ "${{ inputs.root_flavor }}" = "next" ]; then
+        # Fork: pins/susfs-pershoot-picks.txt (one full SHA per line, applied in
+        # order) replaces the "newest 2" guess for 6.1; a failed pick is fatal.
+        PICKS_FILE="${{ github.workspace }}/pins/susfs-pershoot-picks.txt"
+        if [ "${{ inputs.root_flavor }}" = "next" ] && [ "${{ inputs.version }}" = "android14-6.1" ] && [ -f "$PICKS_FILE" ]; then
+          mapfile -t PICKS < <(grep -oE '^[0-9a-f]{40}' "$PICKS_FILE")
+          for sha in "${PICKS[@]}"; do
+            retry git fetch https://gitlab.com/pershoot/susfs4ksu.git "$sha"
+          done
+          [ "${#PICKS[@]}" -eq 0 ] || git -c user.name=ci -c user.email=ci@localhost cherry-pick "${PICKS[@]}"
+          echo "Pinned pershoot picks: ${PICKS[*]:-none}"
+        elif [ "${{ inputs.root_flavor }}" = "next" ]; then
           git fetch https://gitlab.com/pershoot/susfs4ksu.git gki-android14-6.1-dev || true
           git log ..FETCH_HEAD --oneline -n 2 | awk '{print $1}' | tac | xargs git cherry-pick 2>/dev/null || true
         fi

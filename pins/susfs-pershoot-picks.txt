@@ -1,0 +1,2 @@
+88df19e864e90f738610b455706931476641b8d9 kernel_patches: fs/susfs: Allow core to be built with no features
+6d4f9a92ac7946d9d2d1904149d764506c9ae7b9 kernel_patches: fs/susfs: Implement SuSFS and Toolkit coexistence
